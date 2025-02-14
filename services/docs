@@ -1,0 +1,7 @@
+pip install fastapi uvicorn websockets google-cloud-speech google-cloud-storage
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/service-account-key.json"
+setx GOOGLE_APPLICATION_CREDENTIALS "C:\Users\saros\Documents\transcription_backend\trancription-test-c13fa390014c.json"
+ffmpeg -i "C:\Users\saros\Documents\transcription_backend\videoplayback.weba" -acodec pcm_s16le -ar 16000 "C:\Users\saros\Documents\transcription_backend\test.wav"
+choco install ffmpeg -y
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+python -m grpc_tools.protoc -I=protos --python_out=. --grpc_python_out=. protos/audio_streaming.proto

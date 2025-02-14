@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-dotenv
+openai
+pydantic-settings
+websockets
+google-cloud-speech
+google-cloud-storage
+ffmpeg-python
+pydub
+pyaudio
+grpcio-tools
+audio_pb2
+transformers
+torch
+openai

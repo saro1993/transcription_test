@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanntidstranskripsjon & Filopplasting</title>
+</head>
+<body>
+    <h2>🎤 Sanntidstranskripsjon</h2>
+    <button id="start">Start opptak</button>
+    <button id="stop" disabled>Stopp</button>
+    <p><strong>Transkripsjon:</strong></p>
+    <p id="transcription"></p>
+
+    <h2>📂 Last opp en lydfil</h2>
+    <input type="file" id="audioFile">
+    <button id="upload">Last opp og transkriber</button>
+    <p><strong>Transkripsjon fra fil:</strong></p>
+    <p id="fileTranscription"></p>
+
+    <h2>📄 Generert Rapport</h2>
+    <p id="generatedReport"></p>
+
+    <script>
+        let mediaRecorder;
+        let stream;
+
+        document.getElementById("start").addEventListener("click", async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+                mediaRecorder.ondataavailable = async (event) => {
+                    if (event.data.size > 0) {
+                        console.log(`🎤 Sender ${event.data.size} bytes lyd til server`);
+                        await sendAudioToGRPC(event.data);
+                    }
+                };
+
+                mediaRecorder.start(1000); // Samler lyd hvert sekund
+                document.getElementById("start").disabled = true;
+                document.getElementById("stop").disabled = false;
+            } catch (error) {
+                console.error("❌ Feil ved tilgang til mikrofon:", error);
+            }
+        });
+
+        async function sendAudioToGRPC(audioBlob) {
+            const formData = new FormData();
+            formData.append("file", audioBlob, "live_audio.webm");
+
+            try {
+                const response = await fetch("http://127.0.0.1:8080/api/v1/transcribe/live", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                console.log("📝 Transkripsjon mottatt:", data.transcription);
+                document.getElementById("transcription").innerText = data.transcription;
+
+                // Send transkripsjonen for å generere rapporten
+                try {
+                    await generateReport(data.transcription);
+                } catch (error) {
+                    console.error("❌ Feil ved generering av rapport:", error.message);
+                }
+            } catch (error) {
+                console.error("❌ Feil ved sending av lyd:", error);
+            }
+        }
+
+        async function generateReport(transcription) {
+            try {
+                const response = await fetch("http://127.0.0.1:8080/api/v1/generate-rapport/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: transcription })
+                });
+                const data = await response.json();
+                console.log("📄 Rapport mottatt:", data.rapport);
+                document.getElementById("generatedReport").innerText = data.rapport;
+            } catch (error) {
+                console.error("❌ Feil ved generering av rapport:", error);
+            }
+        }
+
+        document.getElementById("stop").addEventListener("click", () => {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            document.getElementById("start").disabled = false;
+            document.getElementById("stop").disabled = true;
+        });
+
+        document.getElementById("upload").addEventListener("click", () => {
+            const fileInput = document.getElementById("audioFile");
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Velg en fil først!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            fetch("http://127.0.0.1:8080/api/v1/upload-file/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("📝 Transkripsjon fra fil:", data.transcription);
+                document.getElementById("fileTranscription").innerText = data.transcription;
+
+                // Send transkripsjonen for å generere rapporten
+                return generateReport(data.transcription);
+            })
+            .catch(error => console.error("❌ Feil ved opplasting:", error));
+        });
+    </script>
+
+</body>
+</html>

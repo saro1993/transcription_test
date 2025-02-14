@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package audio_streaming;
+
+// Definer tjenesten
+service TranscriptionService {
+    rpc Transcribe (stream AudioChunk) returns (stream TranscriptionResponse);
+}
+
+// Struktur for innkommende lyd
+message AudioChunk {
+    bytes audio_chunk = 1;
+}
+
+// Struktur for utgående transkripsjon
+message TranscriptionResponse {
+    string text = 1;
+}
+
+message AudioRequest {
+    bytes audio_chunk = 1;
+}
