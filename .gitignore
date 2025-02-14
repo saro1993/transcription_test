@@ -1,2 +1,5 @@
 # added alle files how are not needed in the git repository
 .env
+test.pem
+trancription-test-c13fa390014c.json
+videoplayback.wav
